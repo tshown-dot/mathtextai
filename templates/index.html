@@ -3,37 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathTextAI - Convert AI Math to Word</title>
+    <title>MathTextAI - Convert AI Math to Word & Google Docs</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            max-width: 700px;
+            max-width: 750px;
             margin: 2rem auto;
             padding: 0 1rem;
             color: #1e293b;
             background: #f8fafc;
         }
+        .header-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        h1 { margin-bottom: 0.2rem; color: #0f172a; }
+        .subtitle { color: #64748b; margin-top: 0; font-size: 1.1rem; }
+        
         .box {
             background: white;
             border: 1px solid #e2e8f0;
             border-radius: 10px;
-            padding: 1.25rem;
+            padding: 1.5rem;
             margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        
+        /* Instructions Styling */
+        .instructions-box { background: #eff6ff; border-color: #bfdbfe; }
+        .instructions-box h3 { margin-top: 0; color: #1e40af; margin-bottom: 0.75rem; }
+        .instructions-list { margin: 0; padding-left: 1.25rem; color: #334155; line-height: 1.6; }
+        .gdocs-callout {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: #ffffff;
+            border-left: 4px solid #10b981;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #047857;
+        }
+
+        .step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
         .prompt-text {
             background: #f1f5f9;
-            padding: 0.75rem;
+            padding: 1rem;
             border-radius: 6px;
             font-size: 0.85rem;
             color: #334155;
             white-space: pre-wrap;
             margin: 0;
+            font-family: ui-monospace, SFMono-Regular, monospace;
         }
         textarea {
             width: 100%;
             height: 220px;
-            padding: 0.75rem;
+            padding: 1rem;
+            font-family: ui-monospace, SFMono-Regular, monospace;
             font-size: 0.9rem;
             border: 1px solid #cbd5e1;
             border-radius: 6px;
@@ -46,28 +71,54 @@
             border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s;
         }
         .btn-copy { background: #e2e8f0; color: #0f172a; font-size: 0.85rem; }
-        .btn-main { background: #2563eb; color: white; width: 100%; font-size: 1rem; padding: 12px; }
+        .btn-copy:hover { background: #cbd5e1; }
+        .btn-main { background: #2563eb; color: white; width: 100%; font-size: 1.05rem; padding: 14px; }
         .btn-main:hover { background: #1d4ed8; }
     </style>
 </head>
 <body>
 
-    <h1 style="margin-bottom: 0.2rem;">MathTextAI</h1>
-    <p style="color: #64748b; margin-top: 0; margin-bottom: 1.5rem;">Turn Gemini & ChatGPT math into editable Word documents.</p>
+    <div class="header-section">
+        <h1>MathTextAI</h1>
+        <p class="subtitle">Turn Gemini & ChatGPT math into fully editable Word & Google Docs.</p>
+    </div>
+
+    <!-- INSTRUCTIONS -->
+    <div class="box instructions-box">
+        <h3>How it works:</h3>
+        <ol class="instructions-list">
+            <li><strong>Copy the prompt</strong> below and paste it into your favorite AI (ChatGPT, Gemini, Claude).</li>
+            <li><strong>Add your request</strong> (e.g., "Create a 5-question algebra quiz") and generate the response.</li>
+            <li><strong>Paste the AI's output</strong> into the converter below.</li>
+            <li><strong>Download your document</strong> with perfectly formatted, editable math equations!</li>
+        </ol>
+        <div class="gdocs-callout">
+            <strong>🟢 Google Docs User?</strong> Simply upload the downloaded <code>.docx</code> file to your Google Drive and open it. Google Docs will automatically convert it and keep all your math equations fully editable!
+        </div>
+    </div>
 
     <!-- STEP 1 -->
     <div class="box">
-        <div class="header">
-            <strong>1. Copy this prompt to your AI chat:</strong>
+        <div class="step-header">
+            <strong>Step 1: Copy this prompt to your AI chat</strong>
             <button class="btn-copy" onclick="copyPrompt()">Copy Prompt</button>
         </div>
         <pre class="prompt-text" id="prompt">Format your entire response as a single Markdown code block. 
 
-Use standard Markdown for text/headings, and use standard LaTeX for all math ($...$ for inline math, $$...$$ on its own line for centered equations). 
+Use standard Markdown for text/headings, and standard LaTeX for all math ($...$ for inline math, $$...$$ on its own line for centered equations). 
 
-CRUCIAL: Do not use \begin{array} environments for stacked arithmetic. Use \begin{matrix} or \begin{aligned} instead.
+CRUCIAL FOR STACKED MATH:
+Never use \hline or \begin{array}. For vertical column arithmetic (addition/multiplication), use \begin{aligned} with \underline{...} on the bottom number. 
+Example:
+$$
+\begin{aligned}
+  & 34.82 \\
++ & \underline{9.59}
+\end{aligned}
+$$
 
 Do not include any intro or outro conversational text.
 
@@ -77,10 +128,10 @@ Here is what I need:
 
     <!-- STEP 2 -->
     <div class="box">
-        <strong style="display: block; margin-bottom: 0.5rem;">2. Paste the AI response below:</strong>
+        <strong style="display: block; margin-bottom: 0.75rem;">Step 2: Paste the AI response below</strong>
         <form action="/convert" method="POST">
-            <textarea name="markdown_text" placeholder="Paste the code block here..."></textarea>
-            <button type="submit" class="btn-main">Convert to Word (.docx)</button>
+            <textarea name="markdown_text" placeholder="Paste the generated code block here..."></textarea>
+            <button type="submit" class="btn-main">Convert & Download Document (.docx)</button>
         </form>
     </div>
 
@@ -89,7 +140,13 @@ Here is what I need:
             navigator.clipboard.writeText(document.getElementById('prompt').innerText);
             const btn = document.querySelector('.btn-copy');
             btn.innerText = 'Copied!';
-            setTimeout(() => btn.innerText = 'Copy Prompt', 2000);
+            btn.style.background = '#bbf7d0';
+            btn.style.color = '#166534';
+            setTimeout(() => {
+                btn.innerText = 'Copy Prompt';
+                btn.style.background = '#e2e8f0';
+                btn.style.color = '#0f172a';
+            }, 2000);
         }
     </script>
 
