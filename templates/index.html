@@ -45,11 +45,14 @@
 <body>
 
     <h1>MathTextAI</h1>
-    <p>Paste your Gemini or ChatGPT output below to instantly convert Markdown and LaTeX equations into an editable Microsoft Word document. To get your LLM output in the correct format, use this prompt: Format your entire response as a single Markdown code block. 
+    <p>Paste your Gemini or ChatGPT output below to instantly convert Markdown and LaTeX equations into an editable Microsoft Word document. To get your LLM output in the correct format, use this prompt: 
+        <br> Format your entire response as a single Markdown code block. 
 
 Use standard Markdown for text/headings, and use standard LaTeX for all math ($...$ for inline math, $$...$$ on its own line for centered equations). 
 
-Do not include any intro or outro conversational text. Upload the DocX file and convert to Google Docs. </p>
+Do not include any intro or outro conversational text. <br>
+        
+        Upload the DocX file and convert to Google Docs. </p>
 
     <form action="/convert" method="POST">
         <textarea name="markdown_text" placeholder="Paste markdown here...
