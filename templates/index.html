@@ -90,8 +90,8 @@
     <div class="box instructions-box">
         <h3>How it works:</h3>
         <ol class="instructions-list">
-            <li><strong>Copy the prompt</strong> below and paste it into your favorite AI (ChatGPT, Gemini, Claude).</li>
-            <li><strong>Add your request</strong> (e.g., "Create a 5-question algebra quiz") and generate the response.</li>
+            <li><strong>Write your request</strong> in your favorite AI (ChatGPT, Gemini, Claude).</li>
+            <li><strong>Copy the prompt</strong> below and paste it directly <em>underneath</em> your request.</li>
             <li><strong>Paste the AI's output</strong> into the converter below.</li>
             <li><strong>Download your document</strong> with perfectly formatted, editable math equations!</li>
         </ol>
@@ -106,24 +106,25 @@
             <strong>Step 1: Copy this prompt to your AI chat</strong>
             <button class="btn-copy" onclick="copyPrompt()">Copy Prompt</button>
         </div>
-        <pre class="prompt-text" id="prompt">Format your entire response as a single Markdown code block. 
+        <p style="font-size: 0.95rem; color: #475569; margin-top: 0; margin-bottom: 0.75rem;">
+            <em>Paste this prompt below your Lesson/Worksheet/Prompt request:</em>
+        </p>
+        <pre class="prompt-text" id="prompt">
 
-Use standard Markdown for text/headings, and standard LaTeX for all math ($...$ for inline math, $$...$$ on its own line for centered equations). Optimize for Pandoc to Docx. 
+Format your entire response as a single Markdown code block. Do not include any intro or outro conversational text. 
 
-CRUCIAL FOR STACKED MATH:
-Never use \hline or \begin{array}. For vertical column arithmetic (addition/multiplication), use \begin{aligned} with \underline{...} on the bottom number. 
-Example:
-$$
-\begin{aligned}
-  & 34.82 \\
-+ & \underline{9.59}
-\end{aligned}
-$$
-
-Do not include any intro or outro conversational text.
-
-Here is what I need:
-[INSERT YOUR LESSON OR WORKSHEET REQUEST HERE]</pre>
+Optimize for Pandoc to Docx by strictly following these formatting rules:
+* **Standard Formatting:** Use standard Markdown for text/headings and standard LaTeX for all math.
+* **Math within Lists (CRUCIAL):** For any numbered or bulleted lists, you MUST use inline math ($...$). Never use display math ($$...$$) on or immediately following a list item, as it breaks Pandoc list numbering. 
+* **Display Math:** Use display math ($$...$$) ONLY for standalone equations. The $$ delimiters must sit on their own dedicated lines with no preceding text, numbers, or bullet points.
+* **Stacked Math:** Never use \hline or \begin{array}. For vertical column arithmetic (addition/multiplication), use \begin{aligned} with \underline{...} on the bottom number. 
+  Example:
+  $$
+  \begin{aligned}
+    & 34.82 \\
+  + & \underline{9.59}
+  \end{aligned}
+  $$</pre>
     </div>
 
     <!-- STEP 2 -->
