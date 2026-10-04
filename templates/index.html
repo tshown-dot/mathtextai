@@ -13,6 +13,33 @@
             color: #1e293b;
             background: #f8fafc;
         }
+
+        /* Top Navigation Bar */
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 2rem;
+        }
+        .nav-link {
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #64748b;
+            background: #e2e8f0;
+            transition: all 0.2s;
+        }
+        .nav-link:hover {
+            background: #cbd5e1;
+            color: #0f172a;
+        }
+        .nav-link.active {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
         .header-section {
             text-align: center;
             margin-bottom: 2rem;
@@ -41,6 +68,20 @@
             border-radius: 4px;
             font-size: 0.9rem;
             color: #047857;
+        }
+        .print-callout {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: #ffffff;
+            border-left: 4px solid #3b82f6;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #1d4ed8;
+        }
+        .print-callout a {
+            color: #1d4ed8;
+            font-weight: 600;
+            text-decoration: underline;
         }
 
         .step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
@@ -81,6 +122,12 @@
 </head>
 <body>
 
+    <!-- TOP NAVIGATION -->
+    <div class="nav-bar">
+        <a href="/" class="nav-link active">Docx Converter</a>
+        <a href="/print" class="nav-link">🖨️ HTML Print Studio</a>
+    </div>
+
     <div class="header-section">
         <h1>MathTextAI</h1>
         <p class="subtitle">Turn Gemini & ChatGPT math into fully editable Word & Google Docs.</p>
@@ -97,6 +144,9 @@
         </ol>
         <div class="gdocs-callout">
             <strong>🟢 Google Docs User?</strong> Simply upload the downloaded <code>.docx</code> file to your Google Drive and open it. Google Docs will automatically convert it and keep all your math equations fully editable!
+        </div>
+        <div class="print-callout">
+            <strong>🖨️️ Prefer direct browser printing?</strong> Check out our <a href="/print">HTML Print Studio</a> to paste raw HTML, edit live, and print directly.
         </div>
     </div>
 

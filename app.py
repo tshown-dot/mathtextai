@@ -10,6 +10,10 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
+@app.route('/print')
+def print_studio():
+    return render_template('print.html')
+
 @app.route('/convert', methods=['POST'])
 def convert():
     text = request.form.get('markdown_text', '').strip()
