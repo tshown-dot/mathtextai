@@ -76,13 +76,13 @@
             overflow: hidden;
         }
         .pane-left {
-            flex: 0 0 30%; /* 30% Width */
+            flex: 0 0 30%;
             display: flex;
             flex-direction: column;
             border-right: 1px solid #e2e8f0;
         }
         .pane-right {
-            flex: 1; /* 70% Width */
+            flex: 1;
             display: flex;
             flex-direction: column;
             background: #cbd5e1;
@@ -125,7 +125,7 @@
             border: none;
         }
 
-        /* PRINT STYLES - Hides the entire UI and formats the paper */
+        /* PRINT STYLES - Fixes scale, margins, and page breaks */
         @media print {
             .nav-bar, .toolbar, .pane-left, .pane-header { display: none !important; }
             body, .editor-container, .pane-right, .iframe-wrapper { 
@@ -164,7 +164,7 @@
         <!-- Editor Left Pane -->
         <div class="pane-left">
             <div class="pane-header">Paste & Edit Raw HTML</div>
-            <textarea id="htmlInput" placeholder="Paste your HTML code here..." oninput="updatePreview()"></textarea>
+            <textarea id="htmlInput" placeholder="Delete this sample text and paste your AI HTML output here..." oninput="updatePreview()" onclick="clearSampleOnce()"></textarea>
         </div>
 
         <!-- Preview Right Pane -->
@@ -178,6 +178,9 @@
     <script>
         const textarea = document.getElementById('htmlInput');
         const iframe = document.getElementById('previewFrame');
+        let isSampleLoaded = true;
+
+        const defaultSample = `<!-- ⚠️ INSTRUCTIONS: Highlight and delete all code here, then paste your own AI HTML! -->\n\n<div class="header-fields">\n    <div>Name: _______________________</div>\n    <div>Date: ____________</div>\n</div>\n\n<h2>Live Visual Editor Active! 📝</h2>\n<p style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px; font-size: 0.9rem;">\n    <strong>How to use this page:</strong><br>\n    1. <strong>Delete</strong> the sample code on the left side.<br>\n    2. <strong>Paste</strong> your AI-generated HTML into the text box.<br>\n    3. <strong>Click anywhere on this paper preview</strong> to directly edit text, fix typos, or change math numbers before printing!\n</p>`;
 
         function updatePreview() {
             const userContent = textarea.value;
@@ -189,14 +192,18 @@
                 <html>
                 <head>
                     <style>
+                        @page { 
+                            size: letter;
+                            margin: 0.5in; /* Prevents pages pushing into extra sheets */
+                        }
                         body {
                             font-family: Arial, sans-serif;
-                            padding: 40px;
+                            padding: 20px;
+                            margin: 0;
                             color: #000000;
-                            line-height: 1.6;
-                            outline: none; /* Removes glow when typing */
+                            line-height: 1.5;
+                            outline: none;
                         }
-                        @page { margin: 0.75in; }
                         h1, h2 { text-align: center; }
                         .header-fields {
                             display: flex;
@@ -205,6 +212,8 @@
                             border-bottom: 1px solid #ccc;
                             padding-bottom: 10px;
                         }
+                        /* Clean page breaks */
+                        .page-break { page-break-after: always; }
                     </style>
                     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"><\/script>
                     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"><\/script>
@@ -216,10 +225,17 @@
             `);
             frameDoc.close();
 
-            // Sync visual edits back to the textarea so downloads are accurate!
             frameDoc.body.addEventListener('input', function() {
                 textarea.value = frameDoc.body.innerHTML;
             });
+        }
+
+        function clearSampleOnce() {
+            if (isSampleLoaded) {
+                textarea.value = '';
+                updatePreview();
+                isSampleLoaded = false;
+            }
         }
 
         function printWorksheet() {
@@ -228,7 +244,6 @@
         }
 
         function downloadHTML() {
-            // Pull the latest code straight from the synced textarea
             const textToSave = textarea.value;
             const blob = new Blob([textToSave], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
@@ -248,21 +263,19 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 let content = e.target.result;
-                
-                // If they upload a full page, grab just the body text so we don't duplicate <head> tags
                 const bodyMatch = content.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
                 if (bodyMatch && bodyMatch[1]) {
                     content = bodyMatch[1].trim();
                 }
-
                 textarea.value = content;
+                isSampleLoaded = false;
                 updatePreview();
             };
             reader.readAsText(file);
         }
 
-        // Initialize with default template prompt
-        textarea.value = `<div class="header-fields">\n    <div>Name: _______________________</div>\n    <div>Date: ____________</div>\n</div>\n\n<h2>Live Editing Enabled! 🎉</h2>\n<p><strong>Directions:</strong> Paste AI HTML on the left, or just click right here to start typing and editing your document visually.</p>`;
+        // Initialize with default sample
+        textarea.value = defaultSample;
         updatePreview();
     </script>
 </body>
