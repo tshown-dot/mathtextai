@@ -125,7 +125,7 @@
             border: none;
         }
 
-        /* PRINT STYLES - Fixes scale, margins, and page breaks */
+        /* PRINT STYLES */
         @media print {
             .nav-bar, .toolbar, .pane-left, .pane-header { display: none !important; }
             body, .editor-container, .pane-right, .iframe-wrapper { 
@@ -164,7 +164,7 @@
         <!-- Editor Left Pane -->
         <div class="pane-left">
             <div class="pane-header">Paste & Edit Raw HTML</div>
-            <textarea id="htmlInput" placeholder="Delete this sample text and paste your AI HTML output here..." oninput="updatePreview()" onclick="clearSampleOnce()"></textarea>
+            <textarea id="htmlInput" placeholder="Paste your AI HTML output here..." oninput="updatePreview()" onclick="clearSampleOnce()"></textarea>
         </div>
 
         <!-- Preview Right Pane -->
@@ -178,7 +178,6 @@
     <script>
         const textarea = document.getElementById('htmlInput');
         const iframe = document.getElementById('previewFrame');
-        let isSampleLoaded = true;
 
         const defaultSample = `<!-- ⚠️ INSTRUCTIONS: Highlight and delete all code here, then paste your own AI HTML! -->\n\n<div class="header-fields">\n    <div>Name: _______________________</div>\n    <div>Date: ____________</div>\n</div>\n\n<h2>Live Visual Editor Active! 📝</h2>\n<p style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px; font-size: 0.9rem;">\n    <strong>How to use this page:</strong><br>\n    1. <strong>Delete</strong> the sample code on the left side.<br>\n    2. <strong>Paste</strong> your AI-generated HTML into the text box.<br>\n    3. <strong>Click anywhere on this paper preview</strong> to directly edit text, fix typos, or change math numbers before printing!\n</p>`;
 
@@ -194,7 +193,7 @@
                     <style>
                         @page { 
                             size: letter;
-                            margin: 0.5in; /* Prevents pages pushing into extra sheets */
+                            margin: 0.5in;
                         }
                         body {
                             font-family: Arial, sans-serif;
@@ -212,7 +211,6 @@
                             border-bottom: 1px solid #ccc;
                             padding-bottom: 10px;
                         }
-                        /* Clean page breaks */
                         .page-break { page-break-after: always; }
                     </style>
                     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"><\/script>
@@ -230,11 +228,11 @@
             });
         }
 
+        // Safely clear ONLY if the current text matches the default instructions
         function clearSampleOnce() {
-            if (isSampleLoaded) {
+            if (textarea.value.trim() === defaultSample.trim()) {
                 textarea.value = '';
                 updatePreview();
-                isSampleLoaded = false;
             }
         }
 
@@ -244,8 +242,27 @@
         }
 
         function downloadHTML() {
-            const textToSave = textarea.value;
-            const blob = new Blob([textToSave], { type: 'text/html' });
+            const bodyContent = textarea.value;
+            const fullDocument = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page { size: letter; margin: 0.5in; }
+        body { font-family: Arial, sans-serif; padding: 20px; margin: 0; color: #000000; line-height: 1.5; }
+        h1, h2 { text-align: center; }
+        .header-fields { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+        .page-break { page-break-after: always; }
+    </style>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"><\/script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"><\/script>
+</head>
+<body>
+${bodyContent}
+</body>
+</html>`;
+
+            const blob = new Blob([fullDocument], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -263,12 +280,14 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 let content = e.target.result;
+                
+                // Safely extract <body> inner HTML if full file, or use as-is if snippet
                 const bodyMatch = content.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
                 if (bodyMatch && bodyMatch[1]) {
                     content = bodyMatch[1].trim();
                 }
+
                 textarea.value = content;
-                isSampleLoaded = false;
                 updatePreview();
             };
             reader.readAsText(file);
