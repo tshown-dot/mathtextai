@@ -161,10 +161,10 @@
     </div>
 
     <div class="editor-container">
-        <!-- Editor Left Pane -->
+        <!-- Editor Left Pane (Note the debounced oninput) -->
         <div class="pane-left">
             <div class="pane-header">Paste & Edit Raw HTML</div>
-            <textarea id="htmlInput" placeholder="Paste your AI HTML output here..." oninput="updatePreview()" onclick="clearSampleOnce()"></textarea>
+            <textarea id="htmlInput" placeholder="Paste your AI HTML output here..." oninput="debounceUpdate()" onclick="clearSampleOnce()"></textarea>
         </div>
 
         <!-- Preview Right Pane -->
@@ -178,57 +178,60 @@
     <script>
         const textarea = document.getElementById('htmlInput');
         const iframe = document.getElementById('previewFrame');
+        let typingTimer; // Used for debouncing
 
         const defaultSample = `<!-- ⚠️ INSTRUCTIONS: Highlight and delete all code here, then paste your own AI HTML! -->\n\n<div class="header-fields">\n    <div>Name: _______________________</div>\n    <div>Date: ____________</div>\n</div>\n\n<h2>Live Visual Editor Active! 📝</h2>\n<p style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px; font-size: 0.9rem;">\n    <strong>How to use this page:</strong><br>\n    1. <strong>Delete</strong> the sample code on the left side.<br>\n    2. <strong>Paste</strong> your AI-generated HTML into the text box.<br>\n    3. <strong>Click anywhere on this paper preview</strong> to directly edit text, fix typos, or change math numbers before printing!\n</p>`;
 
-        function updatePreview() {
-            const userContent = textarea.value;
-            const frameDoc = iframe.contentDocument || iframe.contentWindow.document;
-
-            frameDoc.open();
-            frameDoc.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        @page { 
-                            size: letter;
-                            margin: 0.5in;
-                        }
-                        body {
-                            font-family: Arial, sans-serif;
-                            padding: 20px;
-                            margin: 0;
-                            color: #000000;
-                            line-height: 1.5;
-                            outline: none;
-                        }
-                        h1, h2 { text-align: center; }
-                        .header-fields {
-                            display: flex;
-                            justify-content: space-between;
-                            margin-bottom: 20px;
-                            border-bottom: 1px solid #ccc;
-                            padding-bottom: 10px;
-                        }
-                        .page-break { page-break-after: always; }
-                    </style>
-                    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"><\/script>
-                    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"><\/script>
-                </head>
-                <body contenteditable="true" spellcheck="false">
-                    ${userContent}
-                </body>
-                </html>
-            `);
-            frameDoc.close();
-
-            frameDoc.body.addEventListener('input', function() {
-                textarea.value = frameDoc.body.innerHTML;
-            });
+        // Utility function to generate the document shell
+        function buildDocumentShell(innerContent) {
+            return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page { size: letter; margin: 0.5in; }
+        html, body { margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; padding: 20px; color: #000000; line-height: 1.5; outline: none; }
+        h1, h2 { text-align: center; }
+        .header-fields { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+        .page-break { page-break-after: always; }
+        @media print {
+            html, body { margin: 0 !important; padding: 0 !important; }
+            body { padding: 0.25in !important; }
+        }
+    </style>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"><\/script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"><\/script>
+</head>
+<body contenteditable="true" spellcheck="false">
+${innerContent}
+</body>
+</html>`;
         }
 
-        // Safely clear ONLY if the current text matches the default instructions
+        // Delay the update slightly so the browser doesn't freeze while typing
+        function debounceUpdate() {
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(updatePreview, 300);
+        }
+
+        function updatePreview() {
+            const frameDoc = iframe.contentDocument || iframe.contentWindow.document;
+            frameDoc.open();
+            frameDoc.write(buildDocumentShell(textarea.value));
+            frameDoc.close();
+
+            // Attach a single native input listener to the new document body
+            frameDoc.body.addEventListener('input', syncLiveEdits);
+        }
+
+        function syncLiveEdits() {
+            const frameDoc = iframe.contentDocument || iframe.contentWindow.document;
+            if (frameDoc && frameDoc.body) {
+                textarea.value = frameDoc.body.innerHTML;
+            }
+        }
+
         function clearSampleOnce() {
             if (textarea.value.trim() === defaultSample.trim()) {
                 textarea.value = '';
@@ -237,31 +240,14 @@
         }
 
         function printWorksheet() {
+            syncLiveEdits();
             iframe.contentWindow.focus();
             iframe.contentWindow.print();
         }
 
         function downloadHTML() {
-            const bodyContent = textarea.value;
-            const fullDocument = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        @page { size: letter; margin: 0.5in; }
-        body { font-family: Arial, sans-serif; padding: 20px; margin: 0; color: #000000; line-height: 1.5; }
-        h1, h2 { text-align: center; }
-        .header-fields { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
-        .page-break { page-break-after: always; }
-    </style>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"><\/script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"><\/script>
-</head>
-<body>
-${bodyContent}
-</body>
-</html>`;
-
+            syncLiveEdits();
+            const fullDocument = buildDocumentShell(textarea.value);
             const blob = new Blob([fullDocument], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -280,20 +266,17 @@ ${bodyContent}
             const reader = new FileReader();
             reader.onload = function(e) {
                 let content = e.target.result;
-                
-                // Safely extract <body> inner HTML if full file, or use as-is if snippet
                 const bodyMatch = content.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
                 if (bodyMatch && bodyMatch[1]) {
                     content = bodyMatch[1].trim();
                 }
-
                 textarea.value = content;
                 updatePreview();
             };
             reader.readAsText(file);
         }
 
-        // Initialize with default sample
+        // Initialize
         textarea.value = defaultSample;
         updatePreview();
     </script>
