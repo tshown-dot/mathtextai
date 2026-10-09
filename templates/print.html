@@ -87,6 +87,7 @@
             flex-direction: column;
             background: #cbd5e1;
             padding: 1rem;
+            align-items: center; /* Center the page visually */
         }
         .pane-header {
             background: #f8fafc;
@@ -113,6 +114,8 @@
         }
         .iframe-wrapper {
             flex: 1;
+            width: 100%;
+            max-width: 8.5in; /* Emulate the physical paper width */
             background: #ffffff;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             border-radius: 4px;
@@ -133,6 +136,7 @@
                 padding: 0 !important; 
                 margin: 0 !important; 
                 background: white !important; 
+                max-width: none !important;
                 box-shadow: none !important;
             }
             iframe { height: 100vh !important; width: 100vw !important; }
@@ -161,7 +165,7 @@
     </div>
 
     <div class="editor-container">
-        <!-- Editor Left Pane (Note the debounced oninput) -->
+        <!-- Editor Left Pane -->
         <div class="pane-left">
             <div class="pane-header">Paste & Edit Raw HTML</div>
             <textarea id="htmlInput" placeholder="Paste your AI HTML output here..." oninput="debounceUpdate()" onclick="clearSampleOnce()"></textarea>
@@ -178,26 +182,47 @@
     <script>
         const textarea = document.getElementById('htmlInput');
         const iframe = document.getElementById('previewFrame');
-        let typingTimer; // Used for debouncing
+        let typingTimer;
 
         const defaultSample = `<!-- ⚠️ INSTRUCTIONS: Highlight and delete all code here, then paste your own AI HTML! -->\n\n<div class="header-fields">\n    <div>Name: _______________________</div>\n    <div>Date: ____________</div>\n</div>\n\n<h2>Live Visual Editor Active! 📝</h2>\n<p style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px; font-size: 0.9rem;">\n    <strong>How to use this page:</strong><br>\n    1. <strong>Delete</strong> the sample code on the left side.<br>\n    2. <strong>Paste</strong> your AI-generated HTML into the text box.<br>\n    3. <strong>Click anywhere on this paper preview</strong> to directly edit text, fix typos, or change math numbers before printing!\n</p>`;
 
-        // Utility function to generate the document shell
+        // The exact layout rules inside the document
         function buildDocumentShell(innerContent) {
             return `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <style>
+        /* Force exact sizing for grids/tables */
+        *, *::before, *::after { box-sizing: border-box; }
+        
+        /* Set standardized print margins */
         @page { size: letter; margin: 0.5in; }
         html, body { margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; padding: 20px; color: #000000; line-height: 1.5; outline: none; }
+        
+        body { 
+            font-family: Arial, sans-serif; 
+            color: #000000; 
+            line-height: 1.5; 
+            outline: none; 
+            
+            /* CRUCIAL FIX: Force screen to match exactly the 8.5in paper width minus margins */
+            max-width: 7.5in; 
+            margin: 0 auto; 
+            padding: 0.5in 0; 
+        }
+        
         h1, h2 { text-align: center; }
         .header-fields { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
-        .page-break { page-break-after: always; }
+        
+        /* Rules to prevent flashcards and tables from breaking across pages */
+        .page-break { page-break-after: always; break-after: page; }
+        table, img, .flashcard { page-break-inside: avoid; break-inside: avoid; }
+        
+        /* Strip the visual screen padding when actually printing so margins don't double up */
         @media print {
-            html, body { margin: 0 !important; padding: 0 !important; }
-            body { padding: 0.25in !important; }
+            body { padding: 0 !important; max-width: 100% !important; }
+            html, body { height: auto !important; min-height: 0 !important; overflow: visible !important; }
         }
     </style>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"><\/script>
@@ -209,7 +234,6 @@ ${innerContent}
 </html>`;
         }
 
-        // Delay the update slightly so the browser doesn't freeze while typing
         function debounceUpdate() {
             clearTimeout(typingTimer);
             typingTimer = setTimeout(updatePreview, 300);
@@ -220,8 +244,6 @@ ${innerContent}
             frameDoc.open();
             frameDoc.write(buildDocumentShell(textarea.value));
             frameDoc.close();
-
-            // Attach a single native input listener to the new document body
             frameDoc.body.addEventListener('input', syncLiveEdits);
         }
 
@@ -276,7 +298,6 @@ ${innerContent}
             reader.readAsText(file);
         }
 
-        // Initialize
         textarea.value = defaultSample;
         updatePreview();
     </script>
