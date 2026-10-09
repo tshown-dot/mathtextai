@@ -55,6 +55,18 @@ def convert():
         if os.path.exists(docx_path):
             os.remove(docx_path)
 
+@app.route('/svg-inserter')
+def svg_home():
+    return render_template('svg-home.html')
+
+@app.route('/svg-inserter/privacy')
+def svg_privacy():
+    return render_template('svg-privacy.html')
+
+@app.route('/svg-inserter/terms')
+def svg_terms():
+    return render_template('svg-terms.html')
+
 if __name__ == '__main__':
     print("🚀 MathtextAI server starting at http://127.0.0.1:5000")
     app.run(debug=True, port=5000)
