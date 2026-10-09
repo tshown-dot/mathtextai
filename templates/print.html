@@ -184,42 +184,33 @@
         const iframe = document.getElementById('previewFrame');
         let typingTimer;
 
-        const defaultSample = `<!-- 
-===================================================================
-MathTextAI - HTML Print Studio Instructions & System Prompt
-===================================================================
-HOW TO USE:
-1. Copy the SYSTEM PROMPT below and paste it into ChatGPT/Gemini 
-   along with your lesson, worksheet, or flashcard request.
-2. Delete ALL text in this box once you have your AI code.
-3. Paste your AI-generated HTML here to preview and edit!
-
----------------------- COPY SYSTEM PROMPT BELOW ----------------------
-Format your response as pure HTML code inside a single block. Do not include intro or outro conversational text.
-
-Follow these strict print & styling rules:
-- Paper Size: Design specifically for US Letter paper (8.5in x 11in).
-- Page Wrapping: Wrap each page in a container with class "page" (e.g., <section class="page">...</section>).
-- Page Breaks: Include "page-break-after: always; break-after: page;" on .page elements so multi-page documents break cleanly.
-- Print Margins: Set page padding to 0.5in and enforce "box-sizing: border-box;" on all elements.
-- Math Formatting: Use standard LaTeX delimiters ($...$ for inline, $$...$$ for display math) as MathJax is loaded automatically.
-----------------------------------------------------------------------
--->
-
-<section class="page">
+        const defaultSample = `<section class="page">
     <div class="header-fields">
         <div>Name: _______________________</div>
         <div>Date: ____________</div>
     </div>
 
-    <h2>Live Visual Editor Active! 📝</h2>
+    <h2 style="margin-top: 0;">Live Visual Editor Active! 📝</h2>
+    
     <p style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; font-size: 0.95rem; border-radius: 4px;">
         <strong>Quick Start Guide:</strong><br>
-        1. <strong>Copy</strong> the system prompt inside the green comment tag above.<br>
-        2. <strong>Paste</strong> it into your AI chat (ChatGPT, Gemini, Claude) with your worksheet topic.<br>
-        3. <strong>Delete</strong> this sample code and paste your AI output here.<br>
+        1. <strong>Copy</strong> the system prompt below and paste it into ChatGPT/Gemini.<br>
+        2. <strong>Delete</strong> all the code on the left side of this screen.<br>
+        3. <strong>Paste</strong> your AI-generated HTML output back into the text box.<br>
         4. <strong>Click anywhere on this paper preview</strong> to make quick edits before printing!
     </p>
+
+    <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 16px; margin-top: 20px;">
+        <strong style="display: block; margin-bottom: 12px; color: #0f172a; font-size: 1.1rem;">📋 System Prompt for AI (Highlight & Copy):</strong>
+        <pre style="white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.9rem; color: #334155; margin: 0; line-height: 1.5;">Format your response as pure HTML code inside a single block. Do not include intro or outro conversational text.
+
+Follow these strict print & styling rules:
+- Paper Size: Design specifically for US Letter paper (8.5in x 11in).
+- Page Wrapping: Wrap each page in a container with class "page" (e.g., &lt;section class="page"&gt;...&lt;/section&gt;).
+- Page Breaks: Include "page-break-after: always; break-after: page;" on .page elements so multi-page documents break cleanly.
+- Print Margins: Set page padding to 0.5in and enforce "box-sizing: border-box;" on all elements.
+- Math Formatting: Use standard LaTeX delimiters ($...$ for inline, $$...$$ for display math) as MathJax is loaded automatically.</pre>
+    </div>
 </section>`;
 
         function buildDocumentShell(innerContent) {
