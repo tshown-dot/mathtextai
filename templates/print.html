@@ -87,7 +87,7 @@
             flex-direction: column;
             background: #cbd5e1;
             padding: 1rem;
-            align-items: center; /* Center the page visually */
+            align-items: center;
         }
         .pane-header {
             background: #f8fafc;
@@ -115,9 +115,8 @@
         .iframe-wrapper {
             flex: 1;
             width: 100%;
-            max-width: 8.5in; /* Emulate the physical paper width */
-            background: #ffffff;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-width: 8.5in; /* Emulate US Letter paper width */
+            background: #cbd5e1;
             border-radius: 4px;
             overflow: hidden;
             display: flex;
@@ -126,6 +125,7 @@
             flex: 1;
             width: 100%;
             border: none;
+            background: transparent;
         }
 
         /* PRINT STYLES */
@@ -168,7 +168,7 @@
         <!-- Editor Left Pane -->
         <div class="pane-left">
             <div class="pane-header">Paste & Edit Raw HTML</div>
-            <textarea id="htmlInput" placeholder="Paste your AI HTML output here..." oninput="debounceUpdate()" onclick="clearSampleOnce()"></textarea>
+            <textarea id="htmlInput" oninput="debounceUpdate()" onclick="clearSampleOnce()"></textarea>
         </div>
 
         <!-- Preview Right Pane -->
@@ -184,20 +184,53 @@
         const iframe = document.getElementById('previewFrame');
         let typingTimer;
 
-        const defaultSample = `<!-- ⚠️ INSTRUCTIONS: Highlight and delete all code here, then paste your own AI HTML! -->\n\n<div class="header-fields">\n    <div>Name: _______________________</div>\n    <div>Date: ____________</div>\n</div>\n\n<h2>Live Visual Editor Active! 📝</h2>\n<p style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px; font-size: 0.9rem;">\n    <strong>How to use this page:</strong><br>\n    1. <strong>Delete</strong> the sample code on the left side.<br>\n    2. <strong>Paste</strong> your AI-generated HTML into the text box.<br>\n    3. <strong>Click anywhere on this paper preview</strong> to directly edit text, fix typos, or change math numbers before printing!\n</p>`;
+        const defaultSample = `<!-- 
+===================================================================
+MathTextAI - HTML Print Studio Instructions & System Prompt
+===================================================================
+HOW TO USE:
+1. Copy the SYSTEM PROMPT below and paste it into ChatGPT/Gemini 
+   along with your lesson, worksheet, or flashcard request.
+2. Delete ALL text in this box once you have your AI code.
+3. Paste your AI-generated HTML here to preview and edit!
 
-        // The exact layout rules inside the document
+---------------------- COPY SYSTEM PROMPT BELOW ----------------------
+Format your response as pure HTML code inside a single block. Do not include intro or outro conversational text.
+
+Follow these strict print & styling rules:
+- Paper Size: Design specifically for US Letter paper (8.5in x 11in).
+- Page Wrapping: Wrap each page in a container with class "page" (e.g., <section class="page">...</section>).
+- Page Breaks: Include "page-break-after: always; break-after: page;" on .page elements so multi-page documents break cleanly.
+- Print Margins: Set page padding to 0.5in and enforce "box-sizing: border-box;" on all elements.
+- Math Formatting: Use standard LaTeX delimiters ($...$ for inline, $$...$$ for display math) as MathJax is loaded automatically.
+----------------------------------------------------------------------
+-->
+
+<section class="page">
+    <div class="header-fields">
+        <div>Name: _______________________</div>
+        <div>Date: ____________</div>
+    </div>
+
+    <h2>Live Visual Editor Active! 📝</h2>
+    <p style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; font-size: 0.95rem; border-radius: 4px;">
+        <strong>Quick Start Guide:</strong><br>
+        1. <strong>Copy</strong> the system prompt inside the green comment tag above.<br>
+        2. <strong>Paste</strong> it into your AI chat (ChatGPT, Gemini, Claude) with your worksheet topic.<br>
+        3. <strong>Delete</strong> this sample code and paste your AI output here.<br>
+        4. <strong>Click anywhere on this paper preview</strong> to make quick edits before printing!
+    </p>
+</section>`;
+
         function buildDocumentShell(innerContent) {
             return `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <style>
-        /* Force exact sizing for grids/tables */
         *, *::before, *::after { box-sizing: border-box; }
         
-        /* Set standardized print margins */
-        @page { size: letter; margin: 0.5in; }
+        @page { size: letter; margin: 0; }
         html, body { margin: 0; padding: 0; }
         
         body { 
@@ -205,24 +238,32 @@
             color: #000000; 
             line-height: 1.5; 
             outline: none; 
-            
-            /* CRUCIAL FIX: Force screen to match exactly the 8.5in paper width minus margins */
-            max-width: 7.5in; 
+            max-width: 8.5in; 
             margin: 0 auto; 
-            padding: 0.5in 0; 
+            background: transparent;
         }
         
+        /* Enforce AI page containers to US Letter */
+        .page {
+            width: 8.5in;
+            height: 11in;
+            padding: 0.5in;
+            margin: 0 auto 12px auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            page-break-after: always;
+            break-after: page;
+        }
+
         h1, h2 { text-align: center; }
         .header-fields { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
         
-        /* Rules to prevent flashcards and tables from breaking across pages */
-        .page-break { page-break-after: always; break-after: page; }
         table, img, .flashcard { page-break-inside: avoid; break-inside: avoid; }
         
-        /* Strip the visual screen padding when actually printing so margins don't double up */
         @media print {
-            body { padding: 0 !important; max-width: 100% !important; }
-            html, body { height: auto !important; min-height: 0 !important; overflow: visible !important; }
+            body { max-width: 100% !important; background: white !important; }
+            .page { margin: 0 !important; border: none !important; box-shadow: none !important; }
         }
     </style>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"><\/script>
@@ -298,6 +339,7 @@ ${innerContent}
             reader.readAsText(file);
         }
 
+        // Initialize
         textarea.value = defaultSample;
         updatePreview();
     </script>
