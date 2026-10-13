@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathTextAI - Custom Converter</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 750px; margin: 3rem auto; padding: 0 1rem; color: #1e293b; background: #f8fafc; }
+        .header-section { text-align: center; margin-bottom: 2rem; }
+        h1 { margin-bottom: 0.2rem; color: #0f172a; }
+        .subtitle { color: #64748b; margin-top: 0; font-size: 1.1rem; }
+        .box { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        textarea { width: 100%; height: 220px; padding: 1rem; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.9rem; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; margin-bottom: 1rem; }
+        .btn-main { background: #2563eb; border: none; color: white; width: 100%; font-size: 1.05rem; padding: 14px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-main:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+
+    <div class="header-section">
+        <h1>Custom Document Builder</h1>
+        <p class="subtitle">Paste your markdown below to generate a specialized document.</p>
+    </div>
+
+    <div class="box">
+        <form action="/custom-convert" method="POST">
+            <textarea name="markdown_text" placeholder="Paste the generated code block here..."></textarea>
+            <button type="submit" class="btn-main">Convert & Download Document</button>
+        </form>
+    </div>
+
+</body>
+</html>

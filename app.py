@@ -70,3 +70,31 @@ def svg_terms():
 if __name__ == '__main__':
     print("🚀 MathtextAI server starting at http://127.0.0.1:5000")
     app.run(debug=True, port=5000)
+
+@app.route('/special')
+def special_converter():
+    # Serves the standalone page
+    return render_template('custom-converter.html')
+
+@app.route('/custom-convert', methods=['POST'])
+def custom_convert():
+    markdown_text = request.form.get('markdown_text', '')
+    
+    # Save the input to a temporary markdown file
+    md_filename = 'temp_custom.md'
+    docx_filename = 'Custom_Output.docx'
+    
+    with open(md_filename, 'w', encoding='utf-8') as f:
+        f.write(markdown_text)
+        
+    try:
+        # Run pandoc and force it to use your specific template document
+        subprocess.run([
+            'pandoc', md_filename,
+            '-o', docx_filename,
+            '--reference-doc=custom_template.docx'
+        ], check=True)
+        
+        return send_file(docx_filename, as_attachment=True)
+    except Exception as e:
+        return f"An error occurred during conversion: {e}", 500
