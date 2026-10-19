@@ -18,8 +18,473 @@
   <!-- Marked for Markdown Parsing -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="{{ url_prefix|default('/btc') }}/static/btc/css/style.css">
+  <!-- Inline CSS: 100% reliable across all hosting environments and reverse proxies -->
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --success: #059669;
+      --success-hover: #047857;
+      --bg-main: #f8fafc;
+      --bg-surface: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      line-height: 1.5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Navbar */
+    .navbar {
+      height: 56px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      z-index: 10;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+    }
+
+    .brand-link {
+      color: var(--text-main);
+      text-decoration: none;
+      font-size: 1.1rem;
+    }
+
+    .nav-divider {
+      color: var(--text-muted);
+    }
+
+    .brand-sub {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 1.05rem;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .badge {
+      background: #ede9fe;
+      color: #5b21b6;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+    }
+
+    .nav-return {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+
+    .nav-return:hover {
+      color: var(--text-main);
+    }
+
+    /* App Container (Split Screen) */
+    .app-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 56px);
+      overflow: hidden;
+    }
+
+    .pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 1.75rem;
+    }
+
+    .left-pane {
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-color);
+      max-width: 480px;
+      min-width: 380px;
+    }
+
+    .right-pane {
+      background: #ffffff;
+      flex: 1.4;
+    }
+
+    /* Headers */
+    .pane-header h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+      background: #f1f5f9;
+      padding: 0.25rem;
+      border-radius: 8px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.55rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: #ffffff;
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Form Controls */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.825rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 0.4rem;
+    }
+
+    .input-select, .input-textarea {
+      width: 100%;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.65rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      background: #ffffff;
+      color: var(--text-main);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .input-select:focus, .input-textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    .input-textarea {
+      resize: vertical;
+      line-height: 1.4;
+    }
+
+    /* Drag and Drop Zone */
+    .dropzone-area {
+      border: 2px dashed #cbd5e1;
+      border-radius: 8px;
+      padding: 1.75rem 1rem;
+      text-align: center;
+      background: #f8fafc;
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .dropzone-area:hover, .dropzone-area.dragover {
+      border-color: var(--primary);
+      background-color: #f5f3ff;
+    }
+
+    .file-hidden {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .dropzone-content p {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #334155;
+      margin-top: 0.5rem;
+    }
+
+    .file-browse-link {
+      font-size: 0.8rem;
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    .selected-file-name {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--success);
+      font-weight: 600;
+      margin-top: 0.5rem;
+      word-break: break-all;
+    }
+
+    .help-text {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.7rem 1.25rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #ffffff;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: var(--success-hover);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Right Pane - Preview Header */
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1rem;
+    }
+
+    .preview-title-box {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .preview-title-box h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .mode-toggles {
+      display: flex;
+      background: #f1f5f9;
+      border-radius: 6px;
+      padding: 2px;
+    }
+
+    .toggle-btn {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    .toggle-btn.active {
+      background: #ffffff;
+      color: var(--text-main);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Preview Content */
+    .preview-body {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+
+    .editor-container {
+      flex: 1;
+      display: flex;
+    }
+
+    .editor-container.hidden {
+      display: none;
+    }
+
+    .markdown-editor {
+      width: 100%;
+      height: 100%;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      background: #fafafa;
+      resize: none;
+      outline: none;
+    }
+
+    .placeholder-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 60%;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .placeholder-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .placeholder-state h4 {
+      font-size: 1.1rem;
+      color: #334155;
+      margin-bottom: 0.35rem;
+    }
+
+    /* Markdown typography */
+    .markdown-body h1 {
+      font-size: 1.6rem;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 0.4rem;
+      margin: 1rem 0 0.75rem;
+    }
+
+    .markdown-body h2 {
+      font-size: 1.3rem;
+      margin: 1.25rem 0 0.5rem;
+      color: var(--primary);
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 0.3rem;
+    }
+
+    .markdown-body h3 {
+      font-size: 1.05rem;
+      margin: 1rem 0 0.4rem;
+      color: #1e293b;
+    }
+
+    .markdown-body p, .markdown-body ul, .markdown-body ol {
+      margin-bottom: 0.85rem;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .markdown-body ul, .markdown-body ol {
+      padding-left: 1.5rem;
+    }
+
+    .markdown-body strong {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .markdown-body blockquote {
+      border-left: 4px solid var(--primary);
+      background: #f8fafc;
+      padding: 0.5rem 1rem;
+      margin: 0.85rem 0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      border-top-color: #ffffff;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .spinner.hidden {
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
   <!-- Navigation Bar -->
@@ -140,7 +605,232 @@
     </section>
   </main>
 
-  <!-- Custom App JavaScript -->
-  <script src="{{ url_prefix|default('/btc') }}/static/btc/js/app.js"></script>
+  <!-- Inline Application JavaScript -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const tabBtns = document.querySelectorAll(".tab-btn");
+      const tabContents = document.querySelectorAll(".tab-content");
+      const dropzone = document.getElementById("dropzone");
+      const fileInput = document.getElementById("file-input");
+      const fileNameDisplay = document.getElementById("file-name-display");
+      const form = document.getElementById("btc-generator-form");
+      const generateBtn = document.getElementById("generate-btn");
+      const btnText = generateBtn.querySelector(".btn-text");
+      const spinner = generateBtn.querySelector(".spinner");
+
+      const previewContainer = document.getElementById("preview-render-container");
+      const editorContainer = document.getElementById("editor-container");
+      const markdownEditor = document.getElementById("markdown-editor");
+      const viewModeBtn = document.getElementById("view-mode-btn");
+      const editModeBtn = document.getElementById("edit-mode-btn");
+      const downloadDocxBtn = document.getElementById("download-docx-btn");
+
+      let currentMarkdown = "";
+
+      // 1. Tab Switching
+      tabBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          tabBtns.forEach(b => b.classList.remove("active"));
+          tabContents.forEach(tc => tc.classList.remove("active"));
+
+          btn.classList.add("active");
+          const targetId = btn.getAttribute("data-tab");
+          const targetContent = document.getElementById(targetId);
+          if (targetContent) {
+            targetContent.classList.add("active");
+          }
+        });
+      });
+
+      // 2. Drag & Drop File Handling
+      if (dropzone && fileInput) {
+        dropzone.addEventListener("click", () => fileInput.click());
+
+        ["dragenter", "dragover"].forEach(eventName => {
+          dropzone.addEventListener(eventName, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.add("dragover");
+          });
+        });
+
+        ["dragleave", "drop"].forEach(eventName => {
+          dropzone.addEventListener(eventName, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove("dragleave");
+            dropzone.classList.remove("dragover");
+          });
+        });
+
+        dropzone.addEventListener("drop", e => {
+          const dt = e.dataTransfer;
+          const files = dt.files;
+          if (files.length > 0) {
+            fileInput.files = files;
+            updateFileDisplay(files[0].name);
+          }
+        });
+
+        fileInput.addEventListener("change", () => {
+          if (fileInput.files.length > 0) {
+            updateFileDisplay(fileInput.files[0].name);
+          }
+        });
+      }
+
+      function updateFileDisplay(name) {
+        fileNameDisplay.textContent = `Selected: ${name}`;
+      }
+
+      // 3. Render Markdown & LaTeX equations with KaTeX
+      function renderContent(md) {
+        currentMarkdown = md;
+        markdownEditor.value = md;
+
+        if (!md.trim()) {
+          previewContainer.innerHTML = `
+            <div class="placeholder-state">
+              <div class="placeholder-icon">📐</div>
+              <h4>No Lesson Generated Yet</h4>
+              <p>Fill out the topic or upload a worksheet on the left, then click <strong>Generate BTC Lesson Packet</strong>.</p>
+            </div>`;
+          downloadDocxBtn.disabled = true;
+          return;
+        }
+
+        // Parse Markdown to HTML
+        const rawHtml = marked.parse(md);
+        previewContainer.innerHTML = rawHtml;
+
+        // Render LaTeX equations via KaTeX auto-render
+        if (window.renderMathInElement) {
+          window.renderMathInElement(previewContainer, {
+            delimiters: [
+              { left: "$$", right: "$$", display: true },
+              { left: "$", right: "$", display: false },
+              { left: "\\[", right: "\\]", display: true },
+              { left: "\\(", right: "\\)", display: false }
+            ],
+            throwOnError: false
+          });
+        }
+
+        downloadDocxBtn.disabled = false;
+      }
+
+      // Synchronize when editing raw markdown
+      markdownEditor.addEventListener("input", () => {
+        currentMarkdown = markdownEditor.value;
+        const rawHtml = marked.parse(currentMarkdown);
+        previewContainer.innerHTML = rawHtml;
+        if (window.renderMathInElement) {
+          window.renderMathInElement(previewContainer, {
+            delimiters: [
+              { left: "$$", right: "$$", display: true },
+              { left: "$", right: "$", display: false },
+              { left: "\\[", right: "\\]", display: true },
+              { left: "\\(", right: "\\)", display: false }
+            ],
+            throwOnError: false
+          });
+        }
+      });
+
+      // 4. View / Edit Mode Toggles
+      viewModeBtn.addEventListener("click", () => {
+        viewModeBtn.classList.add("active");
+        editModeBtn.classList.remove("active");
+        previewContainer.classList.remove("hidden");
+        editorContainer.classList.add("hidden");
+      });
+
+      editModeBtn.addEventListener("click", () => {
+        editModeBtn.classList.add("active");
+        viewModeBtn.classList.remove("active");
+        previewContainer.classList.add("hidden");
+        editorContainer.classList.remove("hidden");
+      });
+
+      // 5. Submit Form to /btc/generate
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+
+        const promptVal = formData.get("prompt")?.trim();
+        const fileVal = fileInput.files[0];
+
+        if (!promptVal && !fileVal) {
+          alert("Please enter a lesson prompt or choose a file to upload.");
+          return;
+        }
+
+        generateBtn.disabled = true;
+        btnText.textContent = "Generating Lesson Packet...";
+        spinner.classList.remove("hidden");
+
+        try {
+          const response = await fetch("/btc/generate", {
+            method: "POST",
+            body: formData
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Generation failed");
+          }
+
+          renderContent(data.markdown);
+          viewModeBtn.click();
+        } catch (err) {
+          alert(`Error generating lesson: ${err.message}`);
+        } finally {
+          generateBtn.disabled = false;
+          btnText.textContent = "⚡ Generate BTC Lesson Packet";
+          spinner.classList.add("hidden");
+        }
+      });
+
+      // 6. Download .docx via Pandoc
+      downloadDocxBtn.addEventListener("click", async () => {
+        const markdownToSend = currentMarkdown || markdownEditor.value;
+        if (!markdownToSend.trim()) return;
+
+        downloadDocxBtn.disabled = true;
+        const originalText = downloadDocxBtn.innerHTML;
+        downloadDocxBtn.innerHTML = `<span>Exporting .docx...</span>`;
+
+        try {
+          const response = await fetch("/btc/download", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ markdown: markdownToSend })
+          });
+
+          if (!response.ok) {
+            const errorJson = await response.json();
+            throw new Error(errorJson.error || "DOCX generation failed");
+          }
+
+          const blob = await response.blob();
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = downloadUrl;
+          a.download = "BTC_Lesson_Output.docx";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(downloadUrl);
+        } catch (err) {
+          alert(`Export failed: ${err.message}`);
+        } finally {
+          downloadDocxBtn.disabled = false;
+          downloadDocxBtn.innerHTML = originalText;
+        }
+      });
+    });
+  </script>
 </body>
 </html>
