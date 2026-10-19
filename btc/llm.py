@@ -59,8 +59,9 @@ def call_llm_text(user_content: str, model: Optional[str] = None) -> str:
         try:
             import google.generativeai as genai
             genai.configure(api_key=gemini_key)
+            selected_model = model or os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
             model_inst = genai.GenerativeModel(
-                model_name=model or "gemini-1.5-pro",
+                model_name=selected_model,
                 system_instruction=BTC_SYSTEM_PROMPT
             )
             response = model_inst.generate_content(user_content)
@@ -79,10 +80,26 @@ def call_llm_vision(image_base64: str, mime_type: str = "image/png") -> str:
     """
     Extracts text and LaTeX math from an image using a multimodal model (GPT-4o or Claude 3.5 Sonnet).
     """
-    openai_key = os.getenv("OPENAI_API_KEY")
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    gemini_key = os.getenv("GEMINI_API_KEY")
 
-    if openai_key:
+    if gemini_key:
+        try:
+            import google.generativeai as genai
+            import base64
+            genai.configure(api_key=gemini_key)
+            model_name = os.getenv("GEMINI_VISION_MODEL", "gemini-3.6-flash")
+            model = genai.GenerativeModel(model_name)
+            image_bytes = base64.b64decode(image_base64)
+            response = model.generate_content([
+                {"mime_type": mime_type, "data": image_bytes},
+                VISION_EXTRACTION_PROMPT
+            ])
+            return response.text or ""
+        except Exception as e:
+            logger.error(f"Gemini Vision call failed: {e}")
+            raise e
+
+    elif openai_key:
         from openai import OpenAI
         client = OpenAI(api_key=openai_key)
         data_url = f"data:{mime_type};base64,{image_base64}"
@@ -127,4 +144,4 @@ def call_llm_vision(image_base64: str, mime_type: str = "image/png") -> str:
         return response.content[0].text
 
     else:
-        raise ValueError("An OpenAI or Anthropic API key is required for image extraction.")
+        raise ValueError("A Gemini, OpenAI, or Anthropic API key is required for image extraction.")
