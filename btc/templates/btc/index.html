@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BTC Lesson Builder | MathTextAI</title>
+
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- KaTeX for LaTeX Math Formatting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+  <!-- Marked for Markdown Parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_prefix|default('/btc') }}/static/btc/css/style.css">
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <a href="/" class="brand-link">MathTextAI</a>
+      <span class="nav-divider">/</span>
+      <a href="/btc" class="brand-sub">BTC Lesson Builder</a>
+    </div>
+    <div class="nav-actions">
+      <span class="badge">Liljedahl BTC Framework</span>
+      <a href="/" class="nav-return">← Back to MathTextAI</a>
+    </div>
+  </header>
+
+  <!-- Split Screen Main Container -->
+  <main class="app-container">
+    <!-- LEFT PANE: Controls & Input Tabs -->
+    <section class="pane left-pane">
+      <div class="pane-header">
+        <h2>Lesson Input & Materials</h2>
+        <p class="subtitle">Generate a thin-sliced whiteboard sequence and consolidation plan.</p>
+      </div>
+
+      <!-- Input Tabs -->
+      <div class="tab-bar">
+        <button type="button" class="tab-btn active" data-tab="tab-prompt">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          Direct Prompt
+        </button>
+        <button type="button" class="tab-btn" data-tab="tab-upload">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path></svg>
+          Upload Materials
+        </button>
+      </div>
+
+      <form id="btc-generator-form">
+        <!-- Common Grade/Course Selector -->
+        <div class="form-group">
+          <label for="grade-level">Target Grade / Course</label>
+          <select id="grade-level" name="grade_level" class="input-select">
+            <option value="Middle School (Grades 6-8)">Middle School (Grades 6-8)</option>
+            <option value="Algebra 1" selected>Algebra 1</option>
+            <option value="Geometry">Geometry</option>
+            <option value="Algebra 2 / Integrated Math 3">Algebra 2 / Integrated Math 3</option>
+            <option value="Precalculus / Trigonometry">Precalculus / Trigonometry</option>
+            <option value="AP Calculus / AP Statistics">AP Calculus / AP Statistics</option>
+            <option value="Elementary (Grades 3-5)">Elementary (Grades 3-5)</option>
+          </select>
+        </div>
+
+        <!-- TAB 1: Text Prompt -->
+        <div id="tab-prompt" class="tab-content active">
+          <div class="form-group">
+            <label for="prompt-text">Standard, Topic, or Lesson Goal</label>
+            <textarea id="prompt-text" name="prompt" rows="8" class="input-textarea" placeholder="e.g. Solving systems of linear equations using substitution. Students already understand graphing systems. We want to introduce substitution through a real-world puzzle."></textarea>
+          </div>
+        </div>
+
+        <!-- TAB 2: File Upload (Drag & Drop) -->
+        <div id="tab-upload" class="tab-content">
+          <div class="form-group">
+            <label>Upload Curriculum Materials (PDF, DOCX, PNG, JPG)</label>
+            <div id="dropzone" class="dropzone-area">
+              <input type="file" id="file-input" name="file" accept=".pdf,.docx,.png,.jpg,.jpeg" class="file-hidden">
+              <div class="dropzone-content">
+                <svg width="40" height="40" fill="none" stroke="#6366f1" stroke-width="2" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                <p>Drag and drop a PDF, Word doc, or screenshot here</p>
+                <span class="file-browse-link">or click to browse</span>
+                <span id="file-name-display" class="selected-file-name"></span>
+              </div>
+            </div>
+            <p class="help-text">Scanned worksheets and handwritten equations will be parsed with Vision AI.</p>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="form-actions">
+          <button type="submit" id="generate-btn" class="btn btn-primary">
+            <span class="btn-text">⚡ Generate BTC Lesson Packet</span>
+            <span class="spinner hidden"></span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- RIGHT PANE: Live Preview & Export -->
+    <section class="pane right-pane">
+      <div class="preview-header">
+        <div class="preview-title-box">
+          <h3>Live Lesson Preview</h3>
+          <div class="mode-toggles">
+            <button type="button" id="view-mode-btn" class="toggle-btn active">Rendered View</button>
+            <button type="button" id="edit-mode-btn" class="toggle-btn">Edit Raw Markdown</button>
+          </div>
+        </div>
+        <div class="export-actions">
+          <button type="button" id="download-docx-btn" class="btn btn-success" disabled>
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+            Download .docx
+          </button>
+        </div>
+      </div>
+
+      <!-- Rendered HTML Preview with KaTeX -->
+      <div id="preview-render-container" class="preview-body markdown-body">
+        <div class="placeholder-state">
+          <div class="placeholder-icon">📐</div>
+          <h4>No Lesson Generated Yet</h4>
+          <p>Fill out the topic or upload a worksheet on the left, then click <strong>Generate BTC Lesson Packet</strong>.</p>
+        </div>
+      </div>
+
+      <!-- Direct Text Editing Area (Hidden by default, synchronized) -->
+      <div id="editor-container" class="editor-container hidden">
+        <textarea id="markdown-editor" class="markdown-editor" placeholder="Markdown will appear here... you can edit directly before exporting."></textarea>
+      </div>
+    </section>
+  </main>
+
+  <!-- Custom App JavaScript -->
+  <script src="{{ url_prefix|default('/btc') }}/static/btc/js/app.js"></script>
+</body>
+</html>

@@ -3,8 +3,10 @@ import subprocess
 import tempfile
 import io
 from flask import Flask, render_template, request, send_file
+from btc import btc_bp
 
 app = Flask(__name__)
+app.register_blueprint(btc_bp, url_prefix='/btc')
 
 @app.route('/')
 def index():
