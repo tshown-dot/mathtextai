@@ -113,12 +113,10 @@ def download():
         if not markdown_content.strip():
             return jsonify({"error": "No markdown content provided for export."}), 400
 
-        # Locate reference template
-        # Check current working directory, app root, or blueprint folder
+        # Locate reference template specifically for BTC
+        # Isolated inside the btc folder so it never interferes with MathTextAI's custom_template.docx
         template_candidates = [
-            os.path.join(current_app.root_path, "custom_template.docx"),
-            os.path.join(os.getcwd(), "custom_template.docx"),
-            os.path.join(os.path.dirname(__file__), "..", "custom_template.docx"),
+            os.path.join(os.path.dirname(__file__), "btc_template.docx"),
             os.path.join(os.path.dirname(__file__), "custom_template.docx"),
         ]
         template_path = next((p for p in template_candidates if os.path.exists(p)), None)

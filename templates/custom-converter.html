@@ -3,9 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathTextAI - Custom Converter</title>
+    <title>MathTextAI - Special Converter</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 750px; margin: 3rem auto; padding: 0 1rem; color: #1e293b; background: #f8fafc; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 750px; margin: 2rem auto; padding: 0 1rem; color: #1e293b; background: #f8fafc; }
+        
+        /* Top Navigation Bar */
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 2rem;
+        }
+        .nav-link {
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #64748b;
+            background: #e2e8f0;
+            transition: all 0.2s;
+        }
+        .nav-link:hover {
+            background: #cbd5e1;
+            color: #0f172a;
+        }
+        .nav-link.active {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
         .header-section { text-align: center; margin-bottom: 2rem; }
         h1 { margin-bottom: 0.2rem; color: #0f172a; }
         .subtitle { color: #64748b; margin-top: 0; font-size: 1.1rem; }
@@ -17,15 +44,22 @@
 </head>
 <body>
 
+    <!-- TOP NAVIGATION -->
+    <div class="nav-bar">
+        <a href="/" class="nav-link">Docx Converter</a>
+        <a href="/special" class="nav-link active">Special Converter</a>
+        <a href="/btc" class="nav-link">BTC Lesson Builder</a>
+    </div>
+
     <div class="header-section">
-        <h1>Custom Document Builder</h1>
-        <p class="subtitle">Paste your markdown below to generate a specialized document.</p>
+        <h1>Special Document Converter</h1>
+        <p class="subtitle">Generate specialized math documents using your custom Word template.</p>
     </div>
 
     <div class="box">
         <form action="/custom-convert" method="POST">
-            <textarea name="markdown_text" placeholder="Paste the generated code block here..."></textarea>
-            <button type="submit" class="btn-main">Convert & Download Document</button>
+            <textarea name="markdown_text" placeholder="Paste your markdown text here..."></textarea>
+            <button type="submit" class="btn-main">Convert & Download Document (.docx)</button>
         </form>
     </div>
 
