@@ -4,7 +4,7 @@ import tempfile
 import io
 from flask import Flask, render_template, request, send_file
 from btc import btc_bp
-from doc_formatter import format_math_document
+from doc_formatter import format_math_document, clean_markdown_input
 
 app = Flask(__name__)
 app.register_blueprint(btc_bp, url_prefix='/btc')
@@ -63,6 +63,7 @@ def special_converter():
 def custom_convert():
     """Converts markdown using the dedicated custom_template.docx template."""
     markdown_text = request.form.get('markdown_text', '')
+    markdown_text = clean_markdown_input(markdown_text)
     
     with tempfile.NamedTemporaryFile(delete=False, suffix='.md', mode='w', encoding='utf-8') as temp_md:
         temp_md.write(markdown_text)
@@ -74,6 +75,7 @@ def custom_convert():
         subprocess.run([
             'pandoc', md_path,
             '-o', docx_path,
+            '--from', 'markdown+tex_math_dollars+tex_math_single_backslash',
             '--reference-doc=custom_template.docx'
         ], check=True)
         

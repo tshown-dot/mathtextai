@@ -1,23 +1,46 @@
 import os
 import re
 import docx
-from docx.shared import Inches, Pt
+from docx.shared import Inches, Pt, RGBColor
 from docx.enum.table import WD_ROW_HEIGHT_RULE
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls, qn
 
+def clean_markdown_input(text: str) -> str:
+    """
+    Ensures markdown tables have valid dashed separator rows and proper spacing.
+    """
+    lines = text.strip().split("\n")
+    processed = []
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+
+        # Check if line looks like a table header (| Problem | Steps |)
+        if line.startswith("|") and line.endswith("|") and ("problem" in line.lower() or "steps" in line.lower()):
+            processed.append("\n" + line)
+            # Check if next line is already a separator (| :--- | :--- |)
+            if i + 1 < len(lines) and not re.match(r"^\|(\s*:?-+:?\s*\|)+$", lines[i + 1].strip()):
+                cols = len([c for c in line.split("|")[1:-1]])
+                sep = "| " + " | ".join([":---"] * cols) + " |"
+                processed.append(sep)
+        elif line.startswith("# PART ") or line.startswith("PART ") or line.startswith("LESSON ") or line.startswith("## Tool ") or line.startswith("Tool "):
+            processed.append("\n" + line + "\n")
+        else:
+            processed.append(line)
+        i += 1
+    return "\n".join(processed)
+
+
 def format_math_document(docx_path: str) -> None:
     """
-    Applies comprehensive, automated layout and styling to math documents:
-      1. Dynamic 2-page pagination:
-         - 3 Tools: Page 1 = Part 1 (Tools 1, 2, 3); Page 2 = Part 2 (Fix the Mistake) + Part 3 (CYU)
-         - 2 Tools: Page 1 = Part 1 (Tools 1, 2) + Part 2; Page 2 = Part 3 (CYU)
-      2. Table proportions:
-         - Tool tables: compact 5.0" width (Problem 3.2", Steps 1.8")
-         - Fix the Mistake table: full 6.5" width (Problem 4.0", Correct Steps 2.5")
-      3. Crisp dark grey borders (#555555) and soft grey header shading (#E8EDF2)
-      4. Generous cell padding and controlled minimum row heights for student work
-      5. Dynamic spacing for Check Your Understanding questions to balance Page 2
+    Applies professional layout, styling, and typography to math notes documents:
+      1. Dynamic 2-page pagination based on tool count (3 tools vs 2 tools)
+      2. Dark charcoal section banners with bold white text (#555555) for PART 1, 2, 3
+      3. Slate Silver (#CBD5E1) table headers with bold text and dark grey borders (#555555)
+      4. 2/3 and 1/3 column proportions for Tool tables (3.2" Problem, 1.8" Steps)
+      5. Full 6.5" width for Fix the Mistake table
+      6. Calibrated spacing for CYU questions to balance Page 2
     """
     try:
         doc = docx.Document(docx_path)
@@ -27,64 +50,80 @@ def format_math_document(docx_path: str) -> None:
 
     w_ns = nsdecls("w")
     BORDER_COLOR = "555555"
-    HEADER_BG = "E8EDF2"
+    HEADER_BG = "CBD5E1"      # Option A: Slate Silver
+    BANNER_BG = "555555"      # Dark Charcoal Banner
 
     # -------------------------------------------------------------
-    # 1. ANALYZE DOCUMENT CONTENT (COUNT TOOLS & FIND SECTIONS)
+    # 1. COUNT TOOLS AND IDENTIFY SECTIONS
     # -------------------------------------------------------------
-    tool_paragraphs = []
-    p_part1 = None
-    p_part2 = None
-    p_part3 = None
-    cyu_paragraphs = []
+    tool_count = 0
+    for p in doc.paragraphs:
+        text = p.text.strip()
+        if re.match(r"^Tool\s*\d+", text, re.IGNORECASE):
+            tool_count += 1
 
-    current_section = None
+    if tool_count == 0:
+        tool_count = max(1, min(3, len(doc.tables) - 1))
+
+    # Page break rule
+    # 3 Tools -> Page break before Part 2
+    # 2 Tools -> Page break before Part 3
+    break_before_part2 = (tool_count >= 3)
+    cyu_space_after = Pt(16) if break_before_part2 else Pt(28)
+    cyu_space_before = Pt(4) if break_before_part2 else Pt(6)
+
+    # -------------------------------------------------------------
+    # 2. FORMAT PARAGRAPHS, BANNERS, HEADINGS, AND CYU QUESTIONS
+    # -------------------------------------------------------------
+    shd_banner_xml = f'<w:shd {w_ns} w:fill="{BANNER_BG}"/>'
+    current_section = "INTRO"
 
     for p in doc.paragraphs:
         text = p.text.strip()
         text_upper = text.upper()
 
         if "PART 1" in text_upper:
-            p_part1 = p
             current_section = "PART1"
+            _apply_banner_style(p, shd_banner_xml)
+            p.paragraph_format.space_before = Pt(8)
+            p.paragraph_format.space_after = Pt(4)
+            p.paragraph_format.page_break_before = False
+
         elif "PART 2" in text_upper:
-            p_part2 = p
             current_section = "PART2"
+            _apply_banner_style(p, shd_banner_xml)
+            p.paragraph_format.space_before = Pt(8)
+            p.paragraph_format.space_after = Pt(4)
+            p.paragraph_format.page_break_before = break_before_part2
+
         elif "PART 3" in text_upper or "CHECK YOUR UNDERSTANDING" in text_upper:
-            p_part3 = p
             current_section = "PART3"
-        elif current_section == "PART1" and re.match(r"^Tool\s*\d+", text, re.IGNORECASE):
-            tool_paragraphs.append(p)
+            _apply_banner_style(p, shd_banner_xml)
+            p.paragraph_format.space_before = Pt(8)
+            p.paragraph_format.space_after = Pt(4)
+            p.paragraph_format.page_break_before = (not break_before_part2)
+
+        elif p == doc.paragraphs[0]:
+            # Title
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(4)
+
+        elif re.match(r"^Tool\s*\d+", text, re.IGNORECASE):
+            # Tool subheadings (close to its table)
+            p.paragraph_format.space_before = Pt(6)
+            p.paragraph_format.space_after = Pt(2)
+
+        elif "identify the mistake" in text.lower():
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(6)
+
         elif current_section == "PART3" and text:
-            cyu_paragraphs.append(p)
-
-    tool_count = len(tool_paragraphs)
-    # If no tool paragraphs matched by regex, count tables before Part 2
-    if tool_count == 0:
-        tool_count = min(3, len(doc.tables))
+            # CYU Questions
+            p.paragraph_format.space_before = cyu_space_before
+            p.paragraph_format.space_after = cyu_space_after
 
     # -------------------------------------------------------------
-    # 2. DYNAMIC PAGE BREAK RULES
-    # -------------------------------------------------------------
-    if tool_count >= 3:
-        # Case A: 3 Tools -> Page break before Part 2
-        if p_part2 is not None:
-            p_part2.paragraph_format.page_break_before = True
-        if p_part3 is not None:
-            p_part3.paragraph_format.page_break_before = False
-        cyu_spacing_after = Pt(16)
-        cyu_spacing_before = Pt(4)
-    else:
-        # Case B: 2 Tools -> Part 2 stays on Page 1, Page break before Part 3 (CYU)
-        if p_part2 is not None:
-            p_part2.paragraph_format.page_break_before = False
-        if p_part3 is not None:
-            p_part3.paragraph_format.page_break_before = True
-        cyu_spacing_after = Pt(30)  # Generous space to fill Page 2
-        cyu_spacing_before = Pt(6)
-
-    # -------------------------------------------------------------
-    # 3. FORMAT TABLES (WIDTHS, BORDERS, SHADING, PADDING, ROW HEIGHT)
+    # 3. FORMAT TABLES (WIDTHS, BORDERS, SHADING, PADDING)
     # -------------------------------------------------------------
     borders_xml = (
         f'<w:tblBorders {w_ns}>'
@@ -122,7 +161,7 @@ def format_math_document(docx_path: str) -> None:
             tblPr.remove(existing_borders)
         tblPr.append(parse_xml(borders_xml))
 
-        # Apply cell margins
+        # Apply cell padding
         existing_mar = tblPr.find(qn("w:tblCellMar"))
         if existing_mar is not None:
             tblPr.remove(existing_mar)
@@ -140,10 +179,10 @@ def format_math_document(docx_path: str) -> None:
 
         if len(table.columns) == 2:
             if is_fix_mistake:
-                col_widths = [4.0, 2.5]       # 6.5" total
+                col_widths = [4.0, 2.5]       # 6.5" full width
                 min_body_height = Inches(0.85)
             else:
-                col_widths = [3.2, 1.8]       # 5.0" compact Tool width
+                col_widths = [3.2, 1.8]       # 5.0" compact Tool width (~2/3 and ~1/3)
                 min_body_height = Inches(0.95)
         else:
             col_widths = [6.5 / len(table.columns)] * len(table.columns)
@@ -156,7 +195,6 @@ def format_math_document(docx_path: str) -> None:
             tblPr.remove(existing_tblW)
         tblPr.append(parse_xml(tblW_xml))
 
-        # Format rows and cells
         for r_idx, row in enumerate(table.rows):
             trPr = row._tr.get_or_add_trPr()
             trPr.append(parse_xml(cant_split_xml))
@@ -174,7 +212,6 @@ def format_math_document(docx_path: str) -> None:
                     cell.width = Inches(width_in)
                     tcPr = cell._tc.get_or_add_tcPr()
 
-                    # Set explicit cell width
                     cell_width_dxa = int(width_in * 1440)
                     tcW_xml = f'<w:tcW {w_ns} w:w="{cell_width_dxa}" w:type="dxa"/>'
                     existing_tcW = tcPr.find(qn("w:tcW"))
@@ -182,7 +219,6 @@ def format_math_document(docx_path: str) -> None:
                         tcPr.remove(existing_tcW)
                     tcPr.append(parse_xml(tcW_xml))
 
-                    # Vertical alignment center
                     tcPr.append(parse_xml(valign_center_xml))
 
                     if is_header:
@@ -203,35 +239,22 @@ def format_math_document(docx_path: str) -> None:
                             if p.paragraph_format.space_after is None or p.paragraph_format.space_after < Pt(2):
                                 p.paragraph_format.space_after = Pt(3)
 
-    # -------------------------------------------------------------
-    # 4. FORMAT HEADINGS & SECTION SPACING
-    # -------------------------------------------------------------
-    for p in doc.paragraphs:
-        text = p.text.strip()
-        text_upper = text.upper()
-
-        if p == doc.paragraphs[0]:
-            # Title
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(4)
-        elif "PART 1" in text_upper or "PART 2" in text_upper or "PART 3" in text_upper:
-            # Main Section Banners
-            p.paragraph_format.space_before = Pt(8)
-            p.paragraph_format.space_after = Pt(4)
-        elif re.match(r"^Tool\s*\d+", text, re.IGNORECASE):
-            # Tool headings (close to its table)
-            p.paragraph_format.space_before = Pt(6)
-            p.paragraph_format.space_after = Pt(2)
-        elif "identify the mistake" in text.lower():
-            p.paragraph_format.space_before = Pt(4)
-            p.paragraph_format.space_after = Pt(6)
-        elif p in cyu_paragraphs:
-            # Questions in Check Your Understanding
-            p.paragraph_format.space_before = cyu_spacing_before
-            p.paragraph_format.space_after = cyu_spacing_after
-
     try:
         doc.save(docx_path)
         print(f"Document formatted successfully with {tool_count} tools detected.")
     except Exception as e:
         print(f"Warning: Could not save formatted document: {e}")
+
+
+def _apply_banner_style(p, shd_xml):
+    """Applies a dark charcoal background banner with bold white text."""
+    pPr = p._element.get_or_add_pPr()
+    existing_shd = pPr.find(qn("w:shd"))
+    if existing_shd is not None:
+        pPr.remove(existing_shd)
+    pPr.append(parse_xml(shd_xml))
+
+    for run in p.runs:
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.bold = True
+        run.font.size = Pt(11)
