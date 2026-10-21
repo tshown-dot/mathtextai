@@ -165,6 +165,13 @@ def download():
                 logger.error(f"Pandoc error: {result.stderr}")
                 return jsonify({"error": f"Pandoc conversion failed: {result.stderr}"}), 500
 
+            # Automatically apply dark grey borders, shaded header, and cell padding
+            try:
+                from doc_formatter import format_math_document
+                format_math_document(output_docx_path)
+            except Exception as e:
+                logger.warning(f"Could not apply advanced table styling: {e}")
+
             return send_file(
                 output_docx_path,
                 as_attachment=True,

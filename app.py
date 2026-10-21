@@ -4,6 +4,7 @@ import tempfile
 import io
 from flask import Flask, render_template, request, send_file
 from btc import btc_bp
+from doc_formatter import format_math_document
 
 app = Flask(__name__)
 app.register_blueprint(btc_bp, url_prefix='/btc')
@@ -75,6 +76,9 @@ def custom_convert():
             '-o', docx_path,
             '--reference-doc=custom_template.docx'
         ], check=True)
+        
+        # Automatically apply dark grey borders, shaded header, and cell spacing
+        format_math_document(docx_path)
         
         with open(docx_path, 'rb') as f:
             file_data = f.read()
