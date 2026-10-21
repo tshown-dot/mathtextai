@@ -1,46 +1,53 @@
-import os
 import re
 import docx
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Inches, Pt
 from docx.enum.table import WD_ROW_HEIGHT_RULE
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls, qn
 
+
 def clean_markdown_input(text: str) -> str:
     """
-    Ensures markdown tables have valid dashed separator rows and proper spacing.
+    Pre-processes markdown input before Pandoc conversion:
+      - Removes <br> tags inside table rows so cells don't get unwanted blank lines
+      - Ensures markdown tables have dashed separator rows (| :--- | :--- |) if omitted
     """
     lines = text.strip().split("\n")
     processed = []
     i = 0
     while i < len(lines):
-        line = lines[i].strip()
+        raw_line = lines[i]
+        stripped = raw_line.strip()
 
-        # Check if line looks like a table header (| Problem | Steps |)
-        if line.startswith("|") and line.endswith("|") and ("problem" in line.lower() or "steps" in line.lower()):
-            processed.append("\n" + line)
-            # Check if next line is already a separator (| :--- | :--- |)
-            if i + 1 < len(lines) and not re.match(r"^\|(\s*:?-+:?\s*\|)+$", lines[i + 1].strip()):
-                cols = len([c for c in line.split("|")[1:-1]])
-                sep = "| " + " | ".join([":---"] * cols) + " |"
-                processed.append(sep)
-        elif line.startswith("# PART ") or line.startswith("PART ") or line.startswith("LESSON ") or line.startswith("## Tool ") or line.startswith("Tool "):
-            processed.append("\n" + line + "\n")
+        # Clean <br> tags inside table rows
+        if stripped.startswith("|") and stripped.endswith("|"):
+            cleaned_row = re.sub(r"(\s*<br\s*/?>\s*)+", " ", stripped, flags=re.IGNORECASE)
+            processed.append(cleaned_row)
+
+            # If this is a header row (Problem | Steps) and next line is not a separator, insert one
+            if ("problem" in cleaned_row.lower() or "steps" in cleaned_row.lower()):
+                if i + 1 < len(lines) and not re.match(r"^\|(\s*:?-+:?\s*\|)+$", lines[i + 1].strip()):
+                    cols = len([c for c in cleaned_row.split("|")[1:-1]])
+                    sep = "| " + " | ".join([":---"] * cols) + " |"
+                    processed.append(sep)
         else:
-            processed.append(line)
+            processed.append(raw_line)
         i += 1
     return "\n".join(processed)
 
 
 def format_math_document(docx_path: str) -> None:
     """
-    Applies professional layout, styling, and typography to math notes documents:
-      1. Dynamic 2-page pagination based on tool count (3 tools vs 2 tools)
-      2. Dark charcoal section banners with bold white text (#555555) for PART 1, 2, 3
-      3. Slate Silver (#CBD5E1) table headers with bold text and dark grey borders (#555555)
-      4. 2/3 and 1/3 column proportions for Tool tables (3.2" Problem, 1.8" Steps)
-      5. Full 6.5" width for Fix the Mistake table
-      6. Calibrated spacing for CYU questions to balance Page 2
+    Formats the Pandoc-generated Word document to match the exact target layout:
+      1. Full 7.5" table width (5.15" Problem [~2/3], 2.35" Steps [~1/3]) with updated <w:tblGrid>
+      2. Tool table data rows set to 1.75" tall (top-aligned text) so Tools 1-3 fill Page 1
+      3. Fix the Mistake table data row set to 0.65" tall (top-aligned text)
+      4. Slate Silver (#CBD5E1) header shading, bold header text, and dark grey (#555555) borders
+      5. Dynamic page break:
+         - 3 Tools -> Page break before Part 2 (Page 1: Tools 1-3; Page 2: Part 2 + Part 3)
+         - 2 Tools -> Page break before Part 3 (Page 1: Tools 1-2 + Part 2; Page 2: Part 3)
+      6. Generous CYU question spacing (48pt / 64pt with contextualSpacing disabled) to fill Page 2
+      7. Preserves native Title, Heading 1, and Heading 2 styles from custom_template.docx
     """
     try:
         doc = docx.Document(docx_path)
@@ -50,11 +57,10 @@ def format_math_document(docx_path: str) -> None:
 
     w_ns = nsdecls("w")
     BORDER_COLOR = "555555"
-    HEADER_BG = "CBD5E1"      # Option A: Slate Silver
-    BANNER_BG = "555555"      # Dark Charcoal Banner
+    HEADER_BG = "CBD5E1"  # Option A: Slate Silver
 
     # -------------------------------------------------------------
-    # 1. COUNT TOOLS AND IDENTIFY SECTIONS
+    # 1. COUNT TOOLS IN PART 1
     # -------------------------------------------------------------
     tool_count = 0
     for p in doc.paragraphs:
@@ -65,17 +71,14 @@ def format_math_document(docx_path: str) -> None:
     if tool_count == 0:
         tool_count = max(1, min(3, len(doc.tables) - 1))
 
-    # Page break rule
-    # 3 Tools -> Page break before Part 2
-    # 2 Tools -> Page break before Part 3
     break_before_part2 = (tool_count >= 3)
-    cyu_space_after = Pt(16) if break_before_part2 else Pt(28)
-    cyu_space_before = Pt(4) if break_before_part2 else Pt(6)
+    tool_row_height = Inches(1.75) if break_before_part2 else Inches(1.55)
+    cyu_space_after = Pt(48) if break_before_part2 else Pt(64)
+    cyu_space_before = Pt(6)
 
     # -------------------------------------------------------------
-    # 2. FORMAT PARAGRAPHS, BANNERS, HEADINGS, AND CYU QUESTIONS
+    # 2. FORMAT PARAGRAPHS, PAGE BREAKS, AND CYU SPACING
     # -------------------------------------------------------------
-    shd_banner_xml = f'<w:shd {w_ns} w:fill="{BANNER_BG}"/>'
     current_section = "INTRO"
 
     for p in doc.paragraphs:
@@ -84,46 +87,42 @@ def format_math_document(docx_path: str) -> None:
 
         if "PART 1" in text_upper:
             current_section = "PART1"
-            _apply_banner_style(p, shd_banner_xml)
-            p.paragraph_format.space_before = Pt(8)
-            p.paragraph_format.space_after = Pt(4)
             p.paragraph_format.page_break_before = False
+            p.paragraph_format.space_before = Pt(8)
+            p.paragraph_format.space_after = Pt(6)
 
         elif "PART 2" in text_upper:
             current_section = "PART2"
-            _apply_banner_style(p, shd_banner_xml)
-            p.paragraph_format.space_before = Pt(8)
-            p.paragraph_format.space_after = Pt(4)
             p.paragraph_format.page_break_before = break_before_part2
+            p.paragraph_format.space_before = Pt(8)
+            p.paragraph_format.space_after = Pt(6)
 
         elif "PART 3" in text_upper or "CHECK YOUR UNDERSTANDING" in text_upper:
             current_section = "PART3"
-            _apply_banner_style(p, shd_banner_xml)
-            p.paragraph_format.space_before = Pt(8)
-            p.paragraph_format.space_after = Pt(4)
             p.paragraph_format.page_break_before = (not break_before_part2)
-
-        elif p == doc.paragraphs[0]:
-            # Title
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(4)
+            p.paragraph_format.space_before = Pt(12)
+            p.paragraph_format.space_after = Pt(8)
 
         elif re.match(r"^Tool\s*\d+", text, re.IGNORECASE):
-            # Tool subheadings (close to its table)
-            p.paragraph_format.space_before = Pt(6)
-            p.paragraph_format.space_after = Pt(2)
+            p.paragraph_format.space_before = Pt(10)
+            p.paragraph_format.space_after = Pt(4)
 
         elif "identify the mistake" in text.lower():
-            p.paragraph_format.space_before = Pt(4)
-            p.paragraph_format.space_after = Pt(6)
+            p.paragraph_format.space_before = Pt(8)
+            p.paragraph_format.space_after = Pt(14)
 
         elif current_section == "PART3" and text:
-            # CYU Questions
             p.paragraph_format.space_before = cyu_space_before
             p.paragraph_format.space_after = cyu_space_after
+            # Disable contextualSpacing so Word never collapses space between list items
+            pPr = p._element.get_or_add_pPr()
+            existing_cs = pPr.find(qn("w:contextualSpacing"))
+            if existing_cs is not None:
+                pPr.remove(existing_cs)
+            pPr.append(parse_xml(f'<w:contextualSpacing {w_ns} w:val="0"/>'))
 
     # -------------------------------------------------------------
-    # 3. FORMAT TABLES (WIDTHS, BORDERS, SHADING, PADDING)
+    # 3. FORMAT TABLES (7.5" FULL WIDTH: 5.15" & 2.35", HEIGHTS, BORDERS)
     # -------------------------------------------------------------
     borders_xml = (
         f'<w:tblBorders {w_ns}>'
@@ -138,30 +137,31 @@ def format_math_document(docx_path: str) -> None:
 
     cell_mar_xml = (
         f'<w:tblCellMar {w_ns}>'
-        f'<w:top w:w="140" w:type="dxa"/>'
-        f'<w:bottom w:w="140" w:type="dxa"/>'
-        f'<w:left w:w="180" w:type="dxa"/>'
-        f'<w:right w:w="180" w:type="dxa"/>'
+        f'<w:top w:w="120" w:type="dxa"/>'
+        f'<w:bottom w:w="120" w:type="dxa"/>'
+        f'<w:left w:w="144" w:type="dxa"/>'
+        f'<w:right w:w="144" w:type="dxa"/>'
         f'</w:tblCellMar>'
     )
 
-    cant_split_xml = f'<w:cantSplit {w_ns}/>'
-    tbl_header_xml = f'<w:tblHeader {w_ns}/>'
-    valign_center_xml = f'<w:vAlign {w_ns} w:val="center"/>'
-    shd_header_xml = f'<w:shd {w_ns} w:fill="{HEADER_BG}"/>'
-    jc_left_xml = f'<w:jc {w_ns} w:val="left"/>'
-
     for table in doc.tables:
         table.autofit = False
-        tblPr = table._tbl.tblPr
+        tbl = table._tbl
+        tblPr = tbl.tblPr
 
-        # Apply borders
+        # Fixed table layout so Word strictly obeys column widths
+        existing_layout = tblPr.find(qn("w:tblLayout"))
+        if existing_layout is not None:
+            tblPr.remove(existing_layout)
+        tblPr.append(parse_xml(f'<w:tblLayout {w_ns} w:type="fixed"/>'))
+
+        # Borders
         existing_borders = tblPr.find(qn("w:tblBorders"))
         if existing_borders is not None:
             tblPr.remove(existing_borders)
         tblPr.append(parse_xml(borders_xml))
 
-        # Apply cell padding
+        # Cell padding
         existing_mar = tblPr.find(qn("w:tblCellMar"))
         if existing_mar is not None:
             tblPr.remove(existing_mar)
@@ -171,90 +171,89 @@ def format_math_document(docx_path: str) -> None:
         existing_jc = tblPr.find(qn("w:jc"))
         if existing_jc is not None:
             tblPr.remove(existing_jc)
-        tblPr.append(parse_xml(jc_left_xml))
+        tblPr.append(parse_xml(f'<w:jc {w_ns} w:val="left"/>'))
 
-        # Determine table column widths
+        # Determine if this is a Tool table or Fix the Mistake table
         first_row_text = " ".join([c.text.lower() for c in table.rows[0].cells])
         is_fix_mistake = ("correct" in first_row_text or "mistake" in first_row_text)
 
         if len(table.columns) == 2:
-            if is_fix_mistake:
-                col_widths = [4.0, 2.5]       # 6.5" full width
-                min_body_height = Inches(0.85)
-            else:
-                col_widths = [3.2, 1.8]       # 5.0" compact Tool width (~2/3 and ~1/3)
-                min_body_height = Inches(0.95)
+            # Full 7.5" width (5.15" Problem [~2/3], 2.35" Steps [~1/3])
+            col_widths = [5.15, 2.35]
+            body_height = Inches(0.65) if is_fix_mistake else tool_row_height
         else:
-            col_widths = [6.5 / len(table.columns)] * len(table.columns)
-            min_body_height = Inches(0.7)
+            col_widths = [7.5 / len(table.columns)] * len(table.columns)
+            body_height = Inches(0.75)
 
-        total_width_dxa = int(sum(col_widths) * 1440)
-        tblW_xml = f'<w:tblW {w_ns} w:w="{total_width_dxa}" w:type="dxa"/>'
+        col_dxa = [int(round(w * 1440)) for w in col_widths]
+        total_width_dxa = sum(col_dxa)
+
+        # Set total table width (<w:tblW>)
         existing_tblW = tblPr.find(qn("w:tblW"))
         if existing_tblW is not None:
             tblPr.remove(existing_tblW)
-        tblPr.append(parse_xml(tblW_xml))
+        tblPr.append(parse_xml(f'<w:tblW {w_ns} w:w="{total_width_dxa}" w:type="dxa"/>'))
 
+        # Overwrite <w:tblGrid> so Word strictly uses our 2/3 & 1/3 column widths
+        grid_cols_xml = "".join([f'<w:gridCol {w_ns} w:w="{dxa}"/>' for dxa in col_dxa])
+        new_grid = parse_xml(f'<w:tblGrid {w_ns}>{grid_cols_xml}</w:tblGrid>')
+        existing_grid = tbl.find(qn("w:tblGrid"))
+        if existing_grid is not None:
+            tbl.replace(existing_grid, new_grid)
+        else:
+            tbl.insert(tbl.index(tblPr) + 1, new_grid)
+
+        # Format rows and cells
         for r_idx, row in enumerate(table.rows):
             trPr = row._tr.get_or_add_trPr()
-            trPr.append(parse_xml(cant_split_xml))
+            if trPr.find(qn("w:cantSplit")) is None:
+                trPr.append(parse_xml(f'<w:cantSplit {w_ns}/>'))
 
             is_header = (r_idx == 0)
             if is_header:
-                trPr.append(parse_xml(tbl_header_xml))
+                row.height_rule = WD_ROW_HEIGHT_RULE.AT_LEAST
+                row.height = Inches(0.38)
             else:
                 row.height_rule = WD_ROW_HEIGHT_RULE.AT_LEAST
-                row.height = min_body_height
+                row.height = body_height
 
-            for c_idx, width_in in enumerate(col_widths):
+            for c_idx, dxa in enumerate(col_dxa):
                 if c_idx < len(row.cells):
                     cell = row.cells[c_idx]
-                    cell.width = Inches(width_in)
+                    cell.width = Inches(col_widths[c_idx])
                     tcPr = cell._tc.get_or_add_tcPr()
 
-                    cell_width_dxa = int(width_in * 1440)
-                    tcW_xml = f'<w:tcW {w_ns} w:w="{cell_width_dxa}" w:type="dxa"/>'
+                    # Cell width
                     existing_tcW = tcPr.find(qn("w:tcW"))
                     if existing_tcW is not None:
                         tcPr.remove(existing_tcW)
-                    tcPr.append(parse_xml(tcW_xml))
+                    tcPr.append(parse_xml(f'<w:tcW {w_ns} w:w="{dxa}" w:type="dxa"/>'))
 
-                    tcPr.append(parse_xml(valign_center_xml))
+                    # Vertical alignment: center for header, top for problem/steps row
+                    existing_vAlign = tcPr.find(qn("w:vAlign"))
+                    if existing_vAlign is not None:
+                        tcPr.remove(existing_vAlign)
+                    valign_val = "center" if is_header else "top"
+                    tcPr.append(parse_xml(f'<w:vAlign {w_ns} w:val="{valign_val}"/>'))
 
                     if is_header:
                         existing_shd = tcPr.find(qn("w:shd"))
                         if existing_shd is not None:
                             tcPr.remove(existing_shd)
-                        tcPr.append(parse_xml(shd_header_xml))
+                        tcPr.append(parse_xml(f'<w:shd {w_ns} w:fill="{HEADER_BG}"/>'))
 
                         for p in cell.paragraphs:
-                            p.paragraph_format.space_before = Pt(4)
-                            p.paragraph_format.space_after = Pt(4)
+                            p.paragraph_format.space_before = Pt(2)
+                            p.paragraph_format.space_after = Pt(2)
                             for run in p.runs:
                                 run.bold = True
                     else:
                         for p in cell.paragraphs:
-                            if p.paragraph_format.space_before is None or p.paragraph_format.space_before < Pt(2):
-                                p.paragraph_format.space_before = Pt(3)
-                            if p.paragraph_format.space_after is None or p.paragraph_format.space_after < Pt(2):
-                                p.paragraph_format.space_after = Pt(3)
+                            p.paragraph_format.space_before = Pt(2)
+                            p.paragraph_format.space_after = Pt(2)
 
     try:
         doc.save(docx_path)
         print(f"Document formatted successfully with {tool_count} tools detected.")
     except Exception as e:
         print(f"Warning: Could not save formatted document: {e}")
-
-
-def _apply_banner_style(p, shd_xml):
-    """Applies a dark charcoal background banner with bold white text."""
-    pPr = p._element.get_or_add_pPr()
-    existing_shd = pPr.find(qn("w:shd"))
-    if existing_shd is not None:
-        pPr.remove(existing_shd)
-    pPr.append(parse_xml(shd_xml))
-
-    for run in p.runs:
-        run.font.color.rgb = RGBColor(255, 255, 255)
-        run.font.bold = True
-        run.font.size = Pt(11)
