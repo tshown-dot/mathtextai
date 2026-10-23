@@ -2,7 +2,7 @@ import os
 import subprocess
 import tempfile
 import io
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, send_from_directory, redirect
 from btc import btc_bp
 from doc_formatter import format_math_document, clean_markdown_input
 
@@ -112,6 +112,16 @@ def svg_privacy():
 @app.route('/svg-inserter/terms')
 def svg_terms():
     return render_template('svg-terms.html')
+
+@app.route('/coordinate-commander')
+def cc_redirect():
+    return redirect('/coordinate-commander/', code=301)
+
+@app.route('/coordinate-commander/')
+@app.route('/coordinate-commander/<path:filename>')
+def coordinate_commander(filename='index.html'):
+    cc_dir = os.path.join(app.root_path, 'coordinate_commander')
+    return send_from_directory(cc_dir, filename)
 
 if __name__ == '__main__':
     print("🚀 MathtextAI server starting at http://127.0.0.1:5000")

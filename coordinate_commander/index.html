@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coordinate Commander 🚀</title>
+  <meta name="description" content="A space game for practicing the coordinate plane: plotting points, distance, and polygons (Grade 6, enVision Topic 2)." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="stars" aria-hidden="true"></div>
+
+  <header class="topbar no-print">
+    <h1 class="logo">🚀 Coordinate Commander</h1>
+    <button id="soundBtn" class="btn-ghost" type="button">🔇 Sound off</button>
+  </header>
+
+  <main>
+    <!-- ============ MISSION MAP ============ -->
+    <section id="menu" class="screen active">
+      <div class="hero">
+        <p class="tagline">Defend the space station by mastering the <b>coordinate plane</b>!</p>
+        <p class="sub">Get <b>8 out of 10</b> on a mission to unlock the next one. 🔓</p>
+      </div>
+
+      <div class="controls-row">
+        <label class="chip-box toggle">
+          <input type="checkbox" id="practiceToggle" />
+          <span>🧘 <b>Practice Mode</b> <small>no timer · no shield damage</small></span>
+        </label>
+
+        <div class="chip-box code-box">
+          <span>🔑 Your Commander Code: <b id="myCode" class="code">CC-0000</b></span>
+          <input id="codeInput" type="text" placeholder="Enter a code" autocomplete="off" aria-label="Enter a Commander Code" />
+          <button id="codeBtn" type="button">Load</button>
+          <span id="codeMsg" class="code-msg"></span>
+        </div>
+      </div>
+
+      <div id="stageMap"></div>
+    </section>
+
+    <!-- ============ GAME ============ -->
+    <section id="game" class="screen">
+      <div class="hud">
+        <button id="quitBtn" type="button" class="btn-ghost">⬅ Map</button>
+        <div id="hudTitle" class="hud-title"></div>
+        <div id="hudProgress" class="pill"></div>
+        <div id="hudScore" class="pill"></div>
+        <div id="hudStreak" class="pill"></div>
+        <div id="hudShields" class="pill shields"></div>
+      </div>
+
+      <div id="threat" class="threat hidden">
+        <div class="threat-track"><span id="threatShip">👾</span></div>
+        <span class="threat-station">🛰️</span>
+        <span id="threatTime" class="threat-time"></span>
+      </div>
+
+      <div id="boss" class="boss hidden">
+        <span class="boss-ship">👾</span>
+        <div class="boss-info">
+          <div class="boss-name">MOTHERSHIP <span id="bossHp"></span></div>
+          <div class="boss-bar"><div id="bossFill" class="boss-fill"></div></div>
+        </div>
+      </div>
+
+      <div class="play">
+        <div class="grid-wrap"><svg id="grid" role="img" aria-label="Coordinate grid"></svg></div>
+        <div class="panel">
+          <div id="qTitle" class="q-title"></div>
+          <div id="qPrompt" class="q-prompt"></div>
+          <div id="qAnswer" class="q-answer"></div>
+          <div id="qFeedback" class="feedback hidden" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ RESULTS / EXAM SCREENS ============ -->
+    <section id="results" class="screen">
+      <div id="resultsCard" class="result-card"></div>
+    </section>
+  </main>
+
+  <script src="js/utils.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/grid.js"></script>
+  <script src="js/hints.js"></script>
+  <script src="js/missions.js"></script>
+  <script src="js/warp.js"></script>
+  <script src="js/shields.js"></script>
+  <script src="js/exam.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
